@@ -47,10 +47,12 @@ def process_data(driver,count):
     # 获取当前窗口句柄
     main_window = driver.current_window_handle
 
-    count = 20
+    count = 21
+    errorString = ""
     # 循环点击不同元素，打开新窗口
     for i in range(1, count):
         try:
+            errorString = "获取平台按钮和itemName"
             platform_element = WebDriverWait(driver, 10).until(
                 EC.element_to_be_clickable((By.CSS_SELECTOR,
                                             f"body > div > div.table-container > table > tbody > tr:nth-child({2*(i-1)+1}) > td:nth-child(9) > a"))
@@ -60,7 +62,7 @@ def process_data(driver,count):
                                             f"body > div > div.table-container > table > tbody > tr:nth-child({2*(i-1)+1}) > td:nth-child(2)"))
             )
             cur_item_name = item_name_element.text
-            print("正在读取物品数据", item_name_element.text, f"当前进度：{i * 100 / count:.2f}%")
+            print("正在读取物品数据", item_name_element.text, f"当前进度：{i * 100 / (count - 1):.2f}%")
             dataDict[item_name_element.text] = ItemInfo(0,0,0)
             platform_element.click()
             WebDriverWait(driver, 10).until(EC.number_of_windows_to_be(2))
@@ -69,11 +71,13 @@ def process_data(driver,count):
             # 获取新页面的数据
             new_window_url = driver.current_url
             if new_window_url.startswith("https://www.youpin898.com/"):
+                errorString = "获取uu出售按钮"
                 sell_element = WebDriverWait(driver, 10).until(
                     EC.element_to_be_clickable((By.CSS_SELECTOR,
                                                 "#__layout > div > div.goodInfo > div.w1200.game-box > div.tabsNavBar.flex-b > div > div.ant-tabs-bar.ant-tabs-top-bar.ant-tabs-large-bar > div > div > div > div > div:nth-child(1) > div:nth-child(1)"))
                 )
                 sell_element.click()
+                errorString = "获取uu出售价格"
                 price_element = WebDriverWait(driver, 10).until(
                     EC.element_to_be_clickable((By.CSS_SELECTOR,
                                                 "#__layout > div > div.goodInfo > div.w1200.game-box > div:nth-child(10) > ul:nth-child(1) > li:nth-child(1) > div.t-4.price-wrapper > span > span"))
@@ -81,6 +85,7 @@ def process_data(driver,count):
                 dataDict[cur_item_name].itemPrice = float(price_element.text)
                 print("uu价格", dataDict[cur_item_name].itemPrice)
             elif new_window_url.startswith("https://buff.163.com/"):
+                errorString = "获取buff出售价格"
                 price_element = WebDriverWait(driver, 10).until(
                     EC.element_to_be_clickable((By.CSS_SELECTOR,
                                                 "#market-selling-list > tbody > tr:nth-child(2) > td:nth-child(5) > div:nth-child(1)"))
@@ -141,7 +146,13 @@ def process_data(driver,count):
             time.sleep(2)
         except Exception as e:
             pass  # 忽略超时异常
-            print(f"点击第 {i} 个元素时出现异常：{e}")
+            # 获取当前页面URL
+            current_url = driver.current_url
+            # 打印异常信息和当前页面URL
+            print(f"点击第 {i} 个元素时出现异常：{e}，当前页面URL：{current_url}")
+            print(errorString)
+            driver.close()
+            driver.switch_to.window(main_window)
 
     input("按下回车键以继续...")
 
